@@ -183,8 +183,11 @@ func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.Chainc
 
 	var accumShare AccumShare
 	err = json.Unmarshal(accumShareBytes, &accumShare)
-	accumShareJson, err := json.Marshal(accumShare)
-	fmt.Println("accumSharejson  is : " , accumShareJson);
+	//accumShareJson, err := json.Marshal(accumShare)
+	//fmt.Println("accumSharejson  is : " , accumShareJson);
+
+	fmt.Println("accumShare  is : " , accumShare);
+	fmt.Println("accumShare deductible balance is : " , accumShare.Claims.DeductibleBalance);
 
 	return accumShareBytes,nil
 }
