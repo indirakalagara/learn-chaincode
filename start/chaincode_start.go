@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+		"encoding/json"
 	"errors"
 	"fmt"
 
@@ -26,6 +27,16 @@ import (
 // SimpleChaincode example simple Chaincode implementation
 type SimpleChaincode struct {
 }
+
+type MSC struct {
+	DEDLimit	float64 `json:"dedlimit"`
+	OOPLimit	float64	`json:"ooplimit"`
+	CFEEDOOP  float64	`json:"cfeedoop"`
+	DFEEDOOP  int	`json:"dfeeoop"`
+	INDORFAMIRY	string	`json:"indorfamily"`
+
+}
+var msc MSC
 
 // ============================================================================================================================
 // Main
@@ -39,11 +50,25 @@ func main() {
 
 // Init resets all the things
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 
-	return nil, nil
+	fmt.Println("Init firing. Function will be ignored: " + function)
+	// Initialize the medical smart contract
+		fmt.Println("Initializing Medicat Smart contract")
+
+	  var mscstr []string
+		mscBytes, _ := json.Marshal(&mscstr)
+		err := stub.PutState("MSCKEY", mscBytes)
+		if err != nil {
+			fmt.Println("Failed to initialize medical smart contract")
+		}
+
+		fmt.Println("Initialization complete")
+		return nil, nil
+
 }
 
 // Invoke is our entry point to invoke a chaincode function
@@ -54,6 +79,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	if function == "init" {													//initialize the chaincode state, used as reset
 		return t.Init(stub, "init", args)
 	}
+
+
 	fmt.Println("invoke did not find func: " + function)					//error
 
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -63,6 +90,13 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
+	if function == "getmscdata" {
+		fmt.Println("invoking getmscdata " + function)
+		t.getmscdata(args[0], stub)
+
+		fmt.Println("Returned from getmscdata " + function)
+
+	}
 	// Handle different functions
 	if function == "dummy_query" {											//read a variable
 		fmt.Println("hi there " + function)						//error
@@ -71,4 +105,22 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	fmt.Println("query did not find func: " + function)						//error
 
 	return nil, errors.New("Received unknown function query: " + function)
+}
+
+func (t *SimpleChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInterface) (MSC, error) {
+	fmt.Println("In getmscdata " )
+
+mscBytes, err := stub.GetState(msckey)
+if err != nil {
+	fmt.Println("Error retrieving msc " + msckey)
+	return msc, errors.New("Error retrieving msc " + msckey)
+}
+
+err = json.Unmarshal(mscBytes, &msc)
+if err != nil {
+	fmt.Println("Error unmarshalling msc " + msckey)
+	return msc, errors.New("Error unmarshalling msc " + msckey)
+}
+
+return msc, nil
 }
