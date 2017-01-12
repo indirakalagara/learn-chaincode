@@ -31,8 +31,8 @@ type SimpleChaincode struct {
 type MSC struct {
 	DEDLimit	float64 `json:"dedlimit"`
 	OOPLimit	float64	`json:"ooplimit"`
-	CFEEDOOP  float64	`json:"cfeedoop"`
-	DFEEDOOP  int	`json:"dfeeoop"`
+	CFEEDOOP  bool	`json:"cfeedoop"`
+	DFEEDOOP  bool	`json:"dfeeoop"`
 	INDORFAMIRY	string	`json:"indorfamily"`
 
 }
@@ -57,9 +57,15 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 // Initialize the medical smart contract
 		fmt.Println("Initializing Medicat Smart contract")
 
-	  var mscstr []string
-		mscBytes, _ := json.Marshal(&mscstr)
-		err := stub.PutState("MSCKEY", mscBytes)
+		var mscData = MSC{DEDLimit: 100, OOPLimit: 150, CFEEDOOP: true, DFEEDOOP: true, INDORFAMIRY: "I"}
+		mscDataBytes, err := json.Marshal(&mscData)
+		err = stub.PutState("MSCKEY", mscDataBytes)
+
+	  // var mscstr []string
+		// mscBytes, _ := json.Marshal(&mscstr)
+		//err := stub.PutState("MSCKEY", mscBytes)
+
+
 		if err != nil {
 			fmt.Println("Failed to initialize medical smart contract")
 		}
