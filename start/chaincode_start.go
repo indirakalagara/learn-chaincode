@@ -54,9 +54,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
-
-	fmt.Println("Init firing. Function will be ignored: " + function)
-	// Initialize the medical smart contract
+// Initialize the medical smart contract
 		fmt.Println("Initializing Medicat Smart contract")
 
 	  var mscstr []string
@@ -90,37 +88,46 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
+	var err error
 	if function == "getmscdata" {
-		fmt.Println("invoking getmscdata " + function)
-		t.getmscdata(args[0], stub)
-
-		fmt.Println("Returned from getmscdata " + function)
-
+			fmt.Println("invoking getmscdata " + function)
+			msc,err = t.getmscdata(args[0], stub)
+			if err != nil {
+				fmt.Println("Error receiving  the msc")
+				return nil, err
+			}
+			mscBytes, err1 := json.Marshal(&msc)
+			if err1 != nil {
+				fmt.Println("Error marshalling the msc")
+				return nil, err1
+			}
+			fmt.Println("All success, returning the msc")
+			return mscBytes, nil
 	}
 	// Handle different functions
 	if function == "dummy_query" {											//read a variable
 		fmt.Println("hi there " + function)						//error
 		return nil, nil;
 	}
-	fmt.Println("query did not find func: " + function)						//error
+						//error
 
 	return nil, errors.New("Received unknown function query: " + function)
 }
 
 func (t *SimpleChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInterface) (MSC, error) {
-	fmt.Println("In getmscdata " )
+	fmt.Println("In getmscdata key is: "+ msckey)
 
-mscBytes, err := stub.GetState(msckey)
-if err != nil {
-	fmt.Println("Error retrieving msc " + msckey)
-	return msc, errors.New("Error retrieving msc " + msckey)
-}
+	mscBytes, err := stub.GetState(msckey)
+	if err != nil {
+		fmt.Println("Error retrieving msc " + msckey)
+		return msc, errors.New("Error retrieving msc " + msckey)
+	}
 
-err = json.Unmarshal(mscBytes, &msc)
-if err != nil {
-	fmt.Println("Error unmarshalling msc " + msckey)
-	return msc, errors.New("Error unmarshalling msc " + msckey)
-}
+	err = json.Unmarshal(mscBytes, &msc)
+	if err != nil {
+		fmt.Println("Error unmarshalling msc " )
+		return msc, errors.New("Error unmarshalling msc " )
+	}
 
-return msc, nil
+	return msc, nil
 }
