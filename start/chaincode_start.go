@@ -17,15 +17,14 @@ limitations under the License.
 package main
 
 import (
-		"encoding/json"
+	"encoding/json"
 	"errors"
 	"fmt"
-
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-// SimpleChaincode example simple Chaincode implementation
-type SimpleChaincode struct {
+// InsuranceChaincode example simple Chaincode implementation
+type InsuranceChaincode struct {
 }
 
 type MSC struct {
@@ -36,93 +35,134 @@ type MSC struct {
 	INDORFAMIRY	string	`json:"indorfamily"`
 
 }
+type AccumShare struct {
+	Claims struct {
+		PolicyID string `json:"PolicyID"`
+		SubscriberID string `json:"SubscriberID"`
+		PolicyStartDate string `json:"PolicyStartDate"`
+		PolicyEndDate string `json:"PolicyEndDate"`
+		PolicyType string `json:"PolicyType"`
+		DeductibleBalance string `json:"DeductibleBalance"`
+		OOPBalance string `json:"OOPBalance"`
+		Claim struct {
+			ClaimID string `json:"ClaimID"`
+			MemberID string `json:"MemberID"`
+			CreateDTTM string `json:"CreateDTTM"`
+			LastUpdateDTTM string `json:"LastUpdateDTTM"`
+			Transaction struct {
+				TransactionID string `json:"TransactionID"`
+				Accumulator struct {
+					Type string `json:"Type"`
+					Amount string `json:"Amount"`
+					UoM string `json:"UoM"`
+				} `json:"Accumulator"`
+				Participant string `json:"Participant"`
+				TotalTransactionAmount string `json:"TotalTransactionAmount"`
+				UoM string `json:"UoM"`
+			} `json:"Transaction"`
+			TotalClaimAmount string `json:"TotalClaimAmount"`
+			UoM string `json:"UoM"`
+		} `json:"Claim"`
+	} `json:"Claims"`
+}
+//contractstruct  - data struct
+
 var msc MSC
 
 // ============================================================================================================================
 // Main
 // ============================================================================================================================
 func main() {
-	err := shim.Start(new(SimpleChaincode))
+	err := shim.Start(new(InsuranceChaincode))
 	if err != nil {
 		fmt.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
 
 // Init resets all the things
-func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *InsuranceChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
-// Initialize the medical smart contract
-		fmt.Println("Initializing Medicat Smart contract")
+	// Initialize the medical smart contract
+	fmt.Println("Initializing  Smart contract")
 
-		var mscData = MSC{DEDLimit: 100, OOPLimit: 150, CFEEDOOP: true, DFEEDOOP: true, INDORFAMIRY: "I"}
-		mscDataBytes, err := json.Marshal(&mscData)
-		err = stub.PutState("MSCKEY", mscDataBytes)
+	var mscData = MSC{DEDLimit: 100, OOPLimit: 150, CFEEDOOP: true, DFEEDOOP: true, INDORFAMIRY: "I"}
+	mscDataBytes, err := json.Marshal(&mscData)
+	err = stub.PutState("MSCKEY", mscDataBytes)
 
-	  // var mscstr []string
-		// mscBytes, _ := json.Marshal(&mscstr)
-		//err := stub.PutState("MSCKEY", mscBytes)
+	//Initialize AccumShare
+	accumShareJson := `{   "Claims": {      "PolicyID": "1266363",      "SubscriberID": "10003",      "PolicyStartDate": "05-Jan-2016",      "PolicyEndDate": "31-Dec-2017",      "PolicyType": "Individual",            "DeductibleBalance":"600",      "OOPBalance":"300",    	  "BalanceUoM":"Dollars", 	 	        "Claim": {         "ClaimID": "18738936",         "MemberID": "10003",         "CreateDTTM": "11-Jan-2017",         "LastUpdateDTTM": "11-Jan-2017",         "Transaction": {            "TransactionID": "36563856",            "Accumulator": {               "Type": "Deductible",                              "Amount": "200",               "UoM": "Dollars"            },            "Participant": "Medical",            "TotalTransactionAmount": "200",            "UoM": "Dollars"         },         "TotalClaimAmount": "200",         "UoM": "Dollars"      }   }}`
+	var accumShare AccumShare
+	err = json.Unmarshal([]byte(accumShareJson), accumShare)
+	if err != nil {
+		fmt.Println("Failed to Unmarshal  Accumshare ")
+	}
+	err = stub.PutState("10003", []byte(accumShareJson))
+	if err != nil {
+		fmt.Println("Failed to initialize  smart contract")
+	}
 
-
-		if err != nil {
-			fmt.Println("Failed to initialize medical smart contract")
-		}
-
-		fmt.Println("Initialization complete")
-		return nil, nil
+	fmt.Println("Initialization complete")
+	return nil, nil
 
 }
 
 // Invoke is our entry point to invoke a chaincode function
-func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("invoke is running " + function)
 
 	// Handle different functions
 	if function == "init" {													//initialize the chaincode state, used as reset
 		return t.Init(stub, "init", args)
 	}
-
-
 	fmt.Println("invoke did not find func: " + function)					//error
 
 	return nil, errors.New("Received unknown function invocation: " + function)
 }
 
 // Query is our entry point for queries
-func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
-	if function == "getmscdata" {
-		fmt.Println("invoking getmscdata " + function)
-		//msc,err := t.getmscdata(args[0], stub)
-		mscBytes,err := t.getmscdata(args[0], stub)
+	if function == "getMscData" {
+		fmt.Println("invoking getMscData " + function)
+		//msc,err := t.getMscData(args[0], stub)
+		mscBytes,err := t.getMscData(args[0], stub)
 		if err != nil {
 			fmt.Println("Error receiving  the msc")
 			return nil, err
 		}
-		// mscBytes, err1 := json.Marshal(&msc)
-		// if err1 != nil {
-		// 	fmt.Println("Error marshalling the msc")
-		// 	return nil, err1
-		// }
+
 		fmt.Println("All success, returning the msc")
 		return mscBytes, nil
 	}
+	if function == "getAccumShare" {
+		fmt.Println("invoking getAccumShare " + function)
+		//msc,err := t.getMscData(args[0], stub)
+		accumShareBytes,err := t.getAccumShare(args[0], stub)
+		if err != nil {
+			fmt.Println("Error receiving  the AccumShare")
+			return nil, err
+		}
+
+		fmt.Println("All success, returning the accumShare")
+		return accumShareBytes, nil
+	}
+
 	// Handle different functions
 	if function == "dummy_query" {											//read a variable
 		fmt.Println("hi there " + function)						//error
 		return nil, nil;
 	}
-						//error
 
 	return nil, errors.New("Received unknown function query: " + function)
 }
 
-//func (t *SimpleChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInterface) (MSC, error) {
-func (t *SimpleChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInterface) ([]byte, error) {
-	fmt.Println("In getmscdata key is: "+ msckey)
+//func (t *InsuranceChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInterface) (MSC, error) {
+func (t *InsuranceChaincode) getMscData(msckey string, stub shim.ChaincodeStubInterface) ([]byte, error) {
+	fmt.Println("In getMscData key is: "+ msckey)
 
 	mscBytes, err := stub.GetState(msckey)
 	if err != nil {
@@ -130,13 +170,35 @@ func (t *SimpleChaincode) getmscdata(msckey string, stub shim.ChaincodeStubInter
 		return mscBytes, errors.New("Error retrieving msc " + msckey)
 	}
 
-	// err = json.Unmarshal(mscBytes, &msc)
-	// if err != nil {
-	// 	fmt.Println("Error unmarshalling msc " )
-	// 	return msc, errors.New("Error unmarshalling msc " )
-	// }
-	//
-	// return msc, nil
-
 	return mscBytes,nil
+}
+func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.ChaincodeStubInterface) ([]byte, error) {
+	fmt.Println("In getAccumShare subscriberID is: "+ subscriberID)
+
+	accumShareBytes, err := stub.GetState(subscriberID)
+	if err != nil {
+		fmt.Println("Error retrieving AccumShare " + subscriberID)
+		return nil, errors.New("Error retrieving AccumShare " + subscriberID)
+	}
+
+	var accumShare AccumShare
+	err = json.Unmarshal(accumShareBytes, &accumShare)
+	accumShareJson, err := json.Marshal(accumShare)
+	fmt.Println("accumSharejson  is : " , accumShareJson);
+
+	return accumShareBytes,nil
+}
+
+func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubInterface) ([]byte, error) {
+	fmt.Println("In setmscdata for key is: "+ msckey)
+
+	var mscData = MSC{DEDLimit: 100, OOPLimit: 150, CFEEDOOP: true, DFEEDOOP: true, INDORFAMIRY: "I"}
+	mscDataBytes, err := json.Marshal(&mscData)
+	err = stub.PutState("MSCKEY", mscDataBytes)
+
+	if err != nil {
+		fmt.Println("Failed to add  medical smart contract")
+	}
+
+	return nil,nil
 }
