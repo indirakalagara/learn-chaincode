@@ -215,7 +215,8 @@ func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.Chainc
 }
 
 func (t *InsuranceChaincode) processClaim(subscriberID string, accumType string, transactionAmt float64,stub shim.ChaincodeStubInterface) ([]byte, error) {
-	fmt.Println("In processClaim subscriberID is: " ,subscriberID )
+	fmt.Println("In processClaim subscriberID is: " ,subscriberID  )
+
 
 	accumShareBytes, err := stub.GetState(subscriberID)
 	if err != nil {
@@ -234,8 +235,9 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, accumType string,
 	var msc MSC
 	err = json.Unmarshal(mscDataBytes, &msc)
 
+	fmt.Println("Processing claim request for claim amount : ", transactionAmt)
 	fmt.Println("AccumShare  is : " , accumShare);
-	fmt.Println("Deductible balance is : " , accumShare.Claims.DeductibleBalance);
+	fmt.Println("Deductible balance is : " , accumShare.Claims.DeductibleBalance)
 	fmt.Println("DedLimit  is : " , msc.DEDLimit);
 
 	//RULE implementation
