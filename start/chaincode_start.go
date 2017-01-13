@@ -140,6 +140,18 @@ func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function s
 		fmt.Println("All success, returning the accumShare")
 		return accumShareBytes, nil
 	}
+	if function == "resetAccumShare" {
+		fmt.Println("invoking resetAccumShare " )
+
+		accumShareBytes,err := t.resetAccumShare(args[0],stub)
+		if err != nil {
+			fmt.Println("Error resetting  the AccumShare")
+			return nil, err
+		}
+
+		fmt.Println("All success, returning the accumShare")
+		return accumShareBytes, nil
+	}
 
 	fmt.Println("invoke did not find func: " + function)					//error
 	return nil, errors.New("Received unknown function invocation: " + function)
@@ -321,7 +333,7 @@ func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubIn
 func (t *InsuranceChaincode) resetAccumShare(subscriberID string, stub shim.ChaincodeStubInterface) ([]byte, error) {
 
 	fmt.Println("In resetAccumShare ")
-	
+
 	accumShareJson := `{"Claims": {"PolicyID": "1266363","SubscriberID": "10003","PolicyStartDate": "05-Jan-2016",
 	"PolicyEndDate": "31-Dec-2017","PolicyType": "Individual", "DeductibleBalance":"0","OOPBalance":"0",
 	"BalanceUoM":"Dollars","Claim": {"ClaimID": "18738936","MemberID": "10003","CreateDTTM": "11-Jan-2017",
