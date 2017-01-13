@@ -255,13 +255,15 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
 
+		fmt.Println("Updated AccuShare Struct is ", accumShare)
 		accDataBytes, err := json.Marshal(&accumShare)
 		err = stub.PutState(subscriberID, accDataBytes)
 
 		if err != nil {
-			fmt.Println("Failed to update AccuShare with transactionAmt - 1")
+			fmt.Println("Failed to update AccuShare with transactionAmt ")
+			return nil,errors.New("Failed to update AccuShare with transactionAmt ")
 		}
-
+		return accDataBytes,nil
 
 	} else if((accumShare.Claims.DeductibleBalance + transactionAmt) > msc.DEDLimit) {
 		fmt.Println("Claimed amount is more than DedLimit. Add to Overage ")
@@ -277,9 +279,13 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accDataBytes, err := json.Marshal(&accumShare)
 		err = stub.PutState(subscriberID, accDataBytes)
 
+
 		if err != nil {
-			fmt.Println("Failed to update AccuShare with transactionAmt - 1")
+			fmt.Println("Failed to update AccuShare with transactionAmt  & Overage")
+
+			return nil,errors.New("Failed to update AccuShare with transactionAmt  & Overage")
 		}
+			return accDataBytes,nil
 
 	} else{
 		fmt.Println("No Updates")
