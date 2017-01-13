@@ -246,6 +246,7 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, accumType string,
 
 		if (accumType == "IIDED"){
 
+
 			fmt.Println("Accum Type is IIDED ")
 			if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
 				fmt.Println("Total Claimed amount is less than DedLimit  ")
