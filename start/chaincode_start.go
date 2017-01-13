@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
@@ -42,8 +43,8 @@ type AccumShare struct {
 		PolicyStartDate string `json:"PolicyStartDate"`
 		PolicyEndDate string `json:"PolicyEndDate"`
 		PolicyType string `json:"PolicyType"`
-		DeductibleBalance string `json:"DeductibleBalance"`
-		OOPBalance string `json:"OOPBalance"`
+		DeductibleBalance float64 `json:"DeductibleBalance"`
+		OOPBalance float64 `json:"OOPBalance"`
 		Claim struct {
 			ClaimID string `json:"ClaimID"`
 			MemberID string `json:"MemberID"`
@@ -53,14 +54,15 @@ type AccumShare struct {
 				TransactionID string `json:"TransactionID"`
 				Accumulator struct {
 					Type string `json:"Type"`
-					Amount string `json:"Amount"`
+					Amount float64 `json:"Amount"`
 					UoM string `json:"UoM"`
 				} `json:"Accumulator"`
+				Overage float64 `json:"Overage"`
 				Participant string `json:"Participant"`
-				TotalTransactionAmount string `json:"TotalTransactionAmount"`
+				TotalTransactionAmount float64 `json:"TotalTransactionAmount"`
 				UoM string `json:"UoM"`
 			} `json:"Transaction"`
-			TotalClaimAmount string `json:"TotalClaimAmount"`
+			TotalClaimAmount float64 `json:"TotalClaimAmount"`
 			UoM string `json:"UoM"`
 		} `json:"Claim"`
 	} `json:"Claims"`
@@ -93,7 +95,14 @@ func (t *InsuranceChaincode) Init(stub shim.ChaincodeStubInterface, function str
 	err = stub.PutState("MSCKEY", mscDataBytes)
 
 	//Initialize AccumShare
-	accumShareJson := `{   "Claims": {      "PolicyID": "1266363",      "SubscriberID": "10003",      "PolicyStartDate": "05-Jan-2016",      "PolicyEndDate": "31-Dec-2017",      "PolicyType": "Individual",            "DeductibleBalance":"600",      "OOPBalance":"300",    	  "BalanceUoM":"Dollars", 	 	        "Claim": {         "ClaimID": "18738936",         "MemberID": "10003",         "CreateDTTM": "11-Jan-2017",         "LastUpdateDTTM": "11-Jan-2017",         "Transaction": {            "TransactionID": "36563856",            "Accumulator": {               "Type": "Deductible",                              "Amount": "200",               "UoM": "Dollars"            },            "Participant": "Medical",            "TotalTransactionAmount": "200",            "UoM": "Dollars"         },         "TotalClaimAmount": "200",         "UoM": "Dollars"      }   }}`
+	accumShareJson := `{   "Claims": {"PolicyID": "1266363","SubscriberID": "10003","PolicyStartDate": "05-Jan-2016",
+	"PolicyEndDate": "31-Dec-2017","PolicyType": "Individual", "DeductibleBalance":"0","OOPBalance":"0",
+	"BalanceUoM":"Dollars","Claim": {"ClaimID": "18738936","MemberID": "10003","CreateDTTM": "11-Jan-2017",
+	"LastUpdateDTTM": "11-Jan-2017","Transaction": {"TransactionID": "36563856",
+	"Accumulator": {"Type": "Deductible","Amount": "0","UoM": "Dollars"},
+	"Participant": "Medical","TotalTransactionAmount": "0","UoM": "Dollars"},
+	"TotalClaimAmount": "0","UoM": "Dollars"}   }}`
+
 	var accumShare AccumShare
 	err = json.Unmarshal([]byte(accumShareJson), accumShare)
 	if err != nil {
@@ -126,18 +135,20 @@ func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function s
 func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
-	if function == "getMscData" {
-		fmt.Println("invoking getMscData " + function)
+	if function == "processClaim" {
+		fmt.Println("invoking processClaim " + function)
 		//msc,err := t.getMscData(args[0], stub)
-		mscBytes,err := t.getMscData(args[0], stub)
+		transcationAmt,err := strconv.ParseFloat(args[1], 64)
+		accumShareBytes,err := t.processClaim(args[0],transcationAmt,stub)
 		if err != nil {
-			fmt.Println("Error receiving  the msc")
+			fmt.Println("Error receiving  the AccumShare")
 			return nil, err
 		}
 
-		fmt.Println("All success, returning the msc")
-		return mscBytes, nil
+		fmt.Println("All success, returning the accumShare")
+		return accumShareBytes, nil
 	}
+
 	if function == "getAccumShare" {
 		fmt.Println("invoking getAccumShare " + function)
 		//msc,err := t.getMscData(args[0], stub)
@@ -151,6 +162,18 @@ func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function st
 		return accumShareBytes, nil
 	}
 
+	if function == "getMscData" {
+		fmt.Println("invoking getMscData " + function)
+		//msc,err := t.getMscData(args[0], stub)
+		mscBytes,err := t.getMscData(args[0], stub)
+		if err != nil {
+			fmt.Println("Error receiving  the msc")
+			return nil, err
+		}
+
+		fmt.Println("All success, returning the msc")
+		return mscBytes, nil
+	}
 	// Handle different functions
 	if function == "dummy_query" {											//read a variable
 		fmt.Println("hi there " + function)						//error
@@ -188,6 +211,67 @@ func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.Chainc
 
 	fmt.Println("accumShare  is : " , accumShare);
 	fmt.Println("accumShare deductible balance is : " , accumShare.Claims.DeductibleBalance);
+
+	return accumShareBytes,nil
+}
+
+func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt float64, stub shim.ChaincodeStubInterface) ([]byte, error) {
+
+	fmt.Println("In processClaim subscriberID is: "+ subscriberID)
+
+	accumShareBytes, err := stub.GetState(subscriberID)
+	if err != nil {
+		fmt.Println("Error retrieving AccumShare " + subscriberID)
+		return nil, errors.New("Error retrieving AccumShare " + subscriberID)
+	}
+
+	var accumShare AccumShare
+	err = json.Unmarshal(accumShareBytes, &accumShare)
+	//accumShareJson, err := json.Marshal(accumShare)
+	//fmt.Println("accumSharejson  is : " , accumShareJson);
+
+	fmt.Println("accumShare  is : " , accumShare);
+	fmt.Println("accumShare deductible balance is : " , accumShare.Claims.DeductibleBalance);
+
+	mscDataBytes,err := stub.GetState("MSCKEY")
+	if err != nil {
+		fmt.Println("Error retrieving Limits " )
+		return nil, errors.New("Error retrieving Limits " )
+	}
+	var msc MSC
+	err = json.Unmarshal(mscDataBytes, &msc)
+
+	fmt.Println("DedLimit  is : " , msc.DEDLimit);
+
+	//RULE implementation
+
+	if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
+		accumShare.Claims.DeductibleBalance = accumShare.Claims.DeductibleBalance + transactionAmt;
+		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
+		accumShare.Claims.Claim.UoM="Dollars";
+		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
+		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
+		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+
+
+	} else if((accumShare.Claims.DeductibleBalance + transactionAmt) > msc.DEDLimit) {
+		accumShare.Claims.Claim.Transaction.Overage = transactionAmt +accumShare.Claims.DeductibleBalance - msc.DEDLimit;
+		accumShare.Claims.DeductibleBalance =  msc.DEDLimit;
+		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
+		accumShare.Claims.Claim.UoM="Dollars";
+
+		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
+		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt-accumShare.Claims.Claim.Transaction.Overage;
+		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+
+
+	} else{
+
+		//Limit reached. No updates.
+	}
+
+
+
 
 	return accumShareBytes,nil
 }
