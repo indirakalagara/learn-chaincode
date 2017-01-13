@@ -99,8 +99,8 @@ func (t *InsuranceChaincode) Init(stub shim.ChaincodeStubInterface, function str
 	"PolicyEndDate": "31-Dec-2017","PolicyType": "Individual", "DeductibleBalance":"0","OOPBalance":"0",
 	"BalanceUoM":"Dollars","Claim": {"ClaimID": "18738936","MemberID": "10003","CreateDTTM": "11-Jan-2017",
 	"LastUpdateDTTM": "11-Jan-2017","Transaction": {"TransactionID": "36563856",
-	"Accumulator": {"Type": "Deductible","Amount": "0","UoM": "Dollars"},
-	"Participant": "Medical","TotalTransactionAmount": "0","UoM": "Dollars"},
+	"Accumulator": {"Type": "","Amount": "0","UoM": "Dollars"},
+	"Participant": "","TotalTransactionAmount": "0","UoM": "Dollars"},
 	"TotalClaimAmount": "0","UoM": "Dollars"}   }}`
 
 	var accumShare AccumShare
@@ -317,4 +317,20 @@ func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubIn
 	}
 
 	return nil,nil
+}
+func (t *InsuranceChaincode) resetAccumShare(subscriberID string, stub shim.ChaincodeStubInterface) ([]byte, error) {
+
+	accumShareJson := `{"Claims": {"PolicyID": "1266363","SubscriberID": "10003","PolicyStartDate": "05-Jan-2016",
+	"PolicyEndDate": "31-Dec-2017","PolicyType": "Individual", "DeductibleBalance":"0","OOPBalance":"0",
+	"BalanceUoM":"Dollars","Claim": {"ClaimID": "18738936","MemberID": "10003","CreateDTTM": "11-Jan-2017",
+	"LastUpdateDTTM": "11-Jan-2017","Transaction": {"TransactionID": "36563856",
+	"Accumulator": {"Type": "","Amount": "0","UoM": "Dollars"},
+	"Participant": "","TotalTransactionAmount": "0","UoM": "Dollars"},
+	"TotalClaimAmount": "0","UoM": "Dollars"}}}`
+
+	err := stub.PutState(subscriberID, []byte(accumShareJson))
+	if err != nil {
+		fmt.Println("Failed to initialize  smart contract")
+	}
+	return []byte(accumShareJson),nil
 }
