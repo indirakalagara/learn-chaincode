@@ -87,7 +87,7 @@ func (t *InsuranceChaincode) Init(stub shim.ChaincodeStubInterface, function str
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
-	// Initialize the medical smart contract
+
 	fmt.Println("Initializing  Smart contract")
 
 	var mscData = MSC{DEDLimit: 100, OOPLimit: 150, CFEEDOOP: true, DFEEDOOP: true, INDORFAMIRY: "I"}
@@ -257,7 +257,7 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 
 		fmt.Println("Updated AccuShare Struct is ", accumShare)
 		accDataBytes, err := json.Marshal(&accumShare)
-		err = stub.PutState(subscriberID, accDataBytes)
+		err = stub.PutState(""+subscriberID+"", accDataBytes)
 
 		if err != nil {
 			fmt.Println("Failed to update AccuShare with transactionAmt ")
@@ -277,7 +277,7 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
 
 		accDataBytes, err := json.Marshal(&accumShare)
-		err = stub.PutState(subscriberID, accDataBytes)
+		err = stub.PutState(""+subscriberID+"", accDataBytes)
 
 
 		if err != nil {
