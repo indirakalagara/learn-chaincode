@@ -246,6 +246,8 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 	//RULE implementation
 
 	if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
+
+		fmt.Println("Claimed amount is less than DedLimit  ")
 		accumShare.Claims.DeductibleBalance = accumShare.Claims.DeductibleBalance + transactionAmt;
 		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
 		accumShare.Claims.Claim.UoM="Dollars";
@@ -253,8 +255,16 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
 
+		accDataBytes, err := json.Marshal(&accumShare)
+		err = stub.PutState(subscriberID, accDataBytes)
+
+		if err != nil {
+			fmt.Println("Failed to update AccuShare with transactionAmt - 1")
+		}
+
 
 	} else if((accumShare.Claims.DeductibleBalance + transactionAmt) > msc.DEDLimit) {
+		fmt.Println("Claimed amount is more than DedLimit. Add to Overage ")
 		accumShare.Claims.Claim.Transaction.Overage = transactionAmt +accumShare.Claims.DeductibleBalance - msc.DEDLimit;
 		accumShare.Claims.DeductibleBalance =  msc.DEDLimit;
 		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
@@ -264,9 +274,15 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt-accumShare.Claims.Claim.Transaction.Overage;
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
 
+		accDataBytes, err := json.Marshal(&accumShare)
+		err = stub.PutState(subscriberID, accDataBytes)
+
+		if err != nil {
+			fmt.Println("Failed to update AccuShare with transactionAmt - 1")
+		}
 
 	} else{
-
+		fmt.Println("No Updates")
 		//Limit reached. No updates.
 	}
 
