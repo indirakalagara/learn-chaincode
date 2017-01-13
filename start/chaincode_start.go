@@ -131,8 +131,8 @@ func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function s
 	if function == "processClaim" {
 		fmt.Println("invoking processClaim " + function)
 		//msc,err := t.getMscData(args[0], stub)
-		transcationAmt,err := strconv.ParseFloat(args[1], 64)
-		accumShareBytes,err := t.processClaim(args[0],transcationAmt,stub)
+		transcationAmt,err := strconv.ParseFloat(args[2], 64)
+		accumShareBytes,err := t.processClaim(args[0],args[1],transcationAmt,stub)
 		if err != nil {
 			fmt.Println("Error receiving  the AccumShare")
 			return nil, err
@@ -217,12 +217,12 @@ func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.Chainc
 	return accumShareBytes,nil
 }
 
-func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt float64, stub shim.ChaincodeStubInterface) ([]byte, error) {
-	fmt.Println("In processClaim subscriberID is: "+ subscriberID)
+func (t *InsuranceChaincode) processClaim(subscriberID string, accumType string, transactionAmt float64,stub shim.ChaincodeStubInterface) ([]byte, error) {
+	fmt.Println("In processClaim subscriberID is: " ,subscriberID )
 
 	accumShareBytes, err := stub.GetState(subscriberID)
 	if err != nil {
-		fmt.Println("Error retrieving AccumShare " + subscriberID)
+		fmt.Println("Error retrieving AccumShare " , subscriberID )
 		return nil, errors.New("Error retrieving AccumShare " + subscriberID)
 	}
 
@@ -245,59 +245,66 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 	fmt.Println("DedLimit  is : " , msc.DEDLimit);
 
 	//RULE implementation
+	if (accumShare.Claims.DeductibleBalance < msc.DEDLimit){
+			fmt.Println("DeductibleBalance  is less than DedLimit  ")
 
-	if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
+		if (accumType == "IIDED"){
 
-		fmt.Println("Claimed amount is less than DedLimit  ")
-		accumShare.Claims.DeductibleBalance = accumShare.Claims.DeductibleBalance + transactionAmt;
-		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
-		accumShare.Claims.Claim.UoM="Dollars";
+			fmt.Println("Accum Type is IIDED ")
+			if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
 
-		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
-		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
-		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+				fmt.Println("Total Claimed amount is less than DedLimit  ")
+				accumShare.Claims.DeductibleBalance = accumShare.Claims.DeductibleBalance + transactionAmt;
+				accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
+				accumShare.Claims.Claim.UoM="Dollars";
 
-		accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
+				accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
+				accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
+				accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
 
-		fmt.Println("Updated AccuShare Struct is ", accumShare)
-		accDataBytes, err := json.Marshal(&accumShare)
-		err = stub.PutState(""+subscriberID+"", accDataBytes)
+				accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
 
-		if err != nil {
-			fmt.Println("Failed to update AccuShare with transactionAmt ")
-			return nil,errors.New("Failed to update AccuShare with transactionAmt ")
+				fmt.Println("Updated AccuShare Struct is ", accumShare)
+				accDataBytes, err := json.Marshal(&accumShare)
+				err = stub.PutState(subscriberID, accDataBytes)
+
+				if err != nil {
+					fmt.Println("Failed to update AccuShare with transactionAmt ")
+					return nil,errors.New("Failed to update AccuShare with transactionAmt ")
+				}
+				return accDataBytes,nil
+
+			} else if((accumShare.Claims.DeductibleBalance + transactionAmt) > msc.DEDLimit) {
+				fmt.Println("Total Claimed amount is more than DedLimit. Add to Overage ")
+				accumShare.Claims.Claim.Transaction.Overage = transactionAmt +accumShare.Claims.DeductibleBalance - msc.DEDLimit;
+				accumShare.Claims.DeductibleBalance =  msc.DEDLimit;
+				accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
+				accumShare.Claims.Claim.UoM="Dollars";
+
+				accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
+				accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt-accumShare.Claims.Claim.Transaction.Overage;
+				accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+				accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
+
+				accDataBytes, err := json.Marshal(&accumShare)
+				err = stub.PutState(subscriberID, accDataBytes)
+
+				if err != nil {
+					fmt.Println("Failed to update AccuShare with transactionAmt  & Overage")
+
+					return nil,errors.New("Failed to update AccuShare with transactionAmt  & Overage")
+				}
+					return accDataBytes,nil
+
+			}
 		}
-		return accDataBytes,nil
 
-	} else if((accumShare.Claims.DeductibleBalance + transactionAmt) > msc.DEDLimit) {
-		fmt.Println("Claimed amount is more than DedLimit. Add to Overage ")
-		accumShare.Claims.Claim.Transaction.Overage = transactionAmt +accumShare.Claims.DeductibleBalance - msc.DEDLimit;
-		accumShare.Claims.DeductibleBalance =  msc.DEDLimit;
-		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
-		accumShare.Claims.Claim.UoM="Dollars";
-
-		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
-		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt-accumShare.Claims.Claim.Transaction.Overage;
-		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
-		accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
-
-		accDataBytes, err := json.Marshal(&accumShare)
-		err = stub.PutState(""+subscriberID+"", accDataBytes)
-
-
-		if err != nil {
-			fmt.Println("Failed to update AccuShare with transactionAmt  & Overage")
-
-			return nil,errors.New("Failed to update AccuShare with transactionAmt  & Overage")
-		}
-			return accDataBytes,nil
-
-	} else{
+	}else{
 		fmt.Println("No Updates")
 		//Limit reached. No updates.
 	}
 
-	return accumShareBytes,nil
+	return nil,nil
 }
 
 func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubInterface) ([]byte, error) {
