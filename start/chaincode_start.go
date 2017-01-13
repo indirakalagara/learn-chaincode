@@ -150,7 +150,7 @@ func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function s
 func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("query is running " + function)
 
-	
+
 	if function == "getAccumShare" {
 		fmt.Println("invoking getAccumShare " + function)
 		//msc,err := t.getMscData(args[0], stub)
@@ -252,9 +252,12 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.DeductibleBalance = accumShare.Claims.DeductibleBalance + transactionAmt;
 		accumShare.Claims.Claim.TotalClaimAmount=transactionAmt;
 		accumShare.Claims.Claim.UoM="Dollars";
+
 		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
 		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt;
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+
+		accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
 
 		fmt.Println("Updated AccuShare Struct is ", accumShare)
 		accDataBytes, err := json.Marshal(&accumShare)
@@ -276,6 +279,7 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		accumShare.Claims.Claim.Transaction.Accumulator.Type ="Deductible";
 		accumShare.Claims.Claim.Transaction.Accumulator.Amount =transactionAmt-accumShare.Claims.Claim.Transaction.Overage;
 		accumShare.Claims.Claim.Transaction.Accumulator.UoM ="Dollars";
+		accumShare.Claims.Claim.Transaction.TotalTransactionAmount=transactionAmt;
 
 		accDataBytes, err := json.Marshal(&accumShare)
 		err = stub.PutState(""+subscriberID+"", accDataBytes)
