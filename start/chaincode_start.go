@@ -128,13 +128,6 @@ func (t *InsuranceChaincode) Invoke(stub shim.ChaincodeStubInterface, function s
 	}
 	fmt.Println("invoke did not find func: " + function)					//error
 
-	return nil, errors.New("Received unknown function invocation: " + function)
-}
-
-// Query is our entry point for queries
-func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	fmt.Println("query is running " + function)
-
 	if function == "processClaim" {
 		fmt.Println("invoking processClaim " + function)
 		//msc,err := t.getMscData(args[0], stub)
@@ -149,6 +142,15 @@ func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function st
 		return accumShareBytes, nil
 	}
 
+
+	return nil, errors.New("Received unknown function invocation: " + function)
+}
+
+// Query is our entry point for queries
+func (t *InsuranceChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
+	fmt.Println("query is running " + function)
+
+	
 	if function == "getAccumShare" {
 		fmt.Println("invoking getAccumShare " + function)
 		//msc,err := t.getMscData(args[0], stub)
@@ -216,7 +218,6 @@ func (t *InsuranceChaincode) getAccumShare(subscriberID string, stub shim.Chainc
 }
 
 func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt float64, stub shim.ChaincodeStubInterface) ([]byte, error) {
-
 	fmt.Println("In processClaim subscriberID is: "+ subscriberID)
 
 	accumShareBytes, err := stub.GetState(subscriberID)
@@ -243,18 +244,8 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 
 	fmt.Println("DedLimit  is : " , msc.DEDLimit);
 
-	//Testing
-	accDataBytes, err := json.Marshal(&accumShare)
-	err = stub.PutState(""+subscriberID+"", accDataBytes)
-	if err != nil {
-		fmt.Println("Failed to update AccuShare with transactionAmt  & Overage")
-
-		return nil,errors.New("Failed to update AccuShare with transactionAmt  & Overage")
-	}
-		return accDataBytes,nil
-
 	//RULE implementation
-/*
+
 	if ((accumShare.Claims.DeductibleBalance + transactionAmt) <= msc.DEDLimit) {
 
 		fmt.Println("Claimed amount is less than DedLimit  ")
@@ -302,10 +293,7 @@ func (t *InsuranceChaincode) processClaim(subscriberID string, transactionAmt fl
 		//Limit reached. No updates.
 	}
 
-*/
-
-
-//	return accumShareBytes,nil
+	return accumShareBytes,nil
 }
 
 func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubInterface) ([]byte, error) {
