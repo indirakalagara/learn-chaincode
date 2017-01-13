@@ -320,6 +320,8 @@ func (t *InsuranceChaincode) setMscData(msckey string, stub shim.ChaincodeStubIn
 }
 func (t *InsuranceChaincode) resetAccumShare(subscriberID string, stub shim.ChaincodeStubInterface) ([]byte, error) {
 
+	fmt.Println("In resetAccumShare ")
+	
 	accumShareJson := `{"Claims": {"PolicyID": "1266363","SubscriberID": "10003","PolicyStartDate": "05-Jan-2016",
 	"PolicyEndDate": "31-Dec-2017","PolicyType": "Individual", "DeductibleBalance":"0","OOPBalance":"0",
 	"BalanceUoM":"Dollars","Claim": {"ClaimID": "18738936","MemberID": "10003","CreateDTTM": "11-Jan-2017",
